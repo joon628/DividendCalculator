@@ -1,6 +1,6 @@
 # Dividend Calculator
 ![Build Status](https://github.com/joon628/DividendCalculator/actions/workflows/coverage.yml/badge.svg)
-![Test Status](https://github.com/joon628/DividendCalculator/actions/workflows/test.yml/badge.svg)
+![Test Status](https://github.com/joon628/DividendCalculator/actions/workflows/tests.yml/badge.svg)
 
 ## Project Description
 
