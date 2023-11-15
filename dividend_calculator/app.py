@@ -44,13 +44,13 @@ def add_stock():
         db.session.add(new_stock)
 
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
 @routes.route('/delete_stock/<string:ticker>', methods=['GET'])
 def delete_stock(ticker):
     Stock.query.filter_by(ticker=ticker).delete()
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
 
 @routes.route('/edit_stock', methods=['POST'])
@@ -68,7 +68,7 @@ def edit_stock():
             stock.shares = float(new_shares)
         db.session.commit()
 
-    return redirect(url_for('index'))
+    return redirect(url_for('routes.index'))
 
 
 @routes.route('/get_tickers')

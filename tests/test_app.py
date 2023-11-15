@@ -3,26 +3,32 @@ from flask_testing import TestCase
 from unittest.mock import patch
 import os
 import sys
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(current_dir)
-sys.path.insert(0, os.path.join(project_dir, 'dividend_calculator'))
-from app import app, db
-from models import Stock
+sys.path.insert(0, project_dir)
+
+from dividend_calculator import create_app, db  # Import the create_app function
+from dividend_calculator.models import Stock
 from dividend_calculator import DividendCalculator
 
 class BaseTestCase(TestCase):
     def create_app(self):
+        # Use the create_app function to get a Flask app instance
+        app = create_app()
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['TESTING'] = True
         return app
 
     def setUp(self):
+        # Set up the test database
         db.create_all()
 
     def tearDown(self):
+        # Tear down the test database
         db.session.remove()
         db.drop_all()
-
+        
 class TestStockRoutes(BaseTestCase):
     def test_index_route(self):
         response = self.client.get('/')
