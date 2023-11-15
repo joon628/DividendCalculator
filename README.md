@@ -1,7 +1,6 @@
 # Dividend Calculator
-
-![Build Status](https://https://github.com/joon628/DividendCalculator/actions/workflows/coverage.yml/badge.svg)
-![Test Status](https://https://github.com/joon628/DividendCalculator/actions/workflows/test.yml/badge.svg)
+![Build Status](https://github.com/joon628/DividendCalculator/actions/workflows/coverage.yml/badge.svg)
+![Test Status](https://github.com/joon628/DividendCalculator/actions/workflows/test.yml/badge.svg)
 
 ## Project Description
 
@@ -14,3 +13,4 @@ Dividend Calculator is a Flask-based web application that allows users to manage
 - Interactive user interface with data validation.
 
 
+![Running Image](./img/Dividend_calculator.png)
