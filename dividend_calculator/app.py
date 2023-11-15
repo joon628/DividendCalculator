@@ -1,18 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for
-from extensions import db
+from flask import Blueprint, render_template, request, redirect, url_for
+from .extensions import db
+from .dividend_calculator import DividendCalculator
+from .models import Stock
 import yfinance as yf
-from dividend_calculator import DividendCalculator
-from models import Stock
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stocks.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
-
-with app.app_context():
-    db.create_all()
+routes = Blueprint('routes', __name__)
     
-@app.route('/')
+@routes.route('/')
 def index():
     stocks = Stock.query.all()
 
@@ -36,7 +30,7 @@ def index():
                            total_yearly=round(total_yearly_payout, 2))
 
 
-@app.route('/add_stock', methods=['POST'])
+@routes.route('/add_stock', methods=['POST'])
 def add_stock():
     ticker = request.form['ticker']
     shares = float(request.form['shares'])
@@ -52,14 +46,14 @@ def add_stock():
     db.session.commit()
     return redirect(url_for('index'))
 
-@app.route('/delete_stock/<string:ticker>', methods=['GET'])
+@routes.route('/delete_stock/<string:ticker>', methods=['GET'])
 def delete_stock(ticker):
     Stock.query.filter_by(ticker=ticker).delete()
     db.session.commit()
     return redirect(url_for('index'))
 
 
-@app.route('/edit_stock', methods=['POST'])
+@routes.route('/edit_stock', methods=['POST'])
 def edit_stock():
     old_ticker = request.form['old_ticker']
     new_ticker = request.form['new_ticker']
@@ -77,12 +71,10 @@ def edit_stock():
     return redirect(url_for('index'))
 
 
-@app.route('/get_tickers')
+@routes.route('/get_tickers')
 def get_tickers():
     tickers = [stock.ticker for stock in Stock.query.with_entities(Stock.ticker).distinct()]
     return {'tickers': tickers}
 
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
