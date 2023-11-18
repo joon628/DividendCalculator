@@ -9,63 +9,77 @@ project_dir = os.path.dirname(current_dir)
 sys.path.insert(0, project_dir)
 
 from dividend_calculator import create_app, db  # Import the create_app function
-from dividend_calculator.models import Stock
+from dividend_calculator.models import Stock, User
 from dividend_calculator import DividendCalculator
 
 class BaseTestCase(TestCase):
     def create_app(self):
-        # Use the create_app function to get a Flask app instance
         app = create_app()
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['TESTING'] = True
         return app
 
     def setUp(self):
-        # Set up the test database
         db.create_all()
 
     def tearDown(self):
-        # Tear down the test database
         db.session.remove()
         db.drop_all()
         
 class TestStockRoutes(BaseTestCase):
+    def login_test_user(self):
+        user = User(username='testuser')
+        user.set_password('testpassword')  # Set the password using the method
+        db.session.add(user)
+        db.session.commit()
+        self.client.post('/login', data=dict(username='testuser', password='testpassword'))
+        
+        
     def test_index_route(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
     def test_add_stock(self):
-        with self.client:
-            response = self.client.post('/add_stock', data=dict(ticker='SCHD', shares=10), follow_redirects=True)
-            self.assertEqual(response.status_code, 200)
-            stock = Stock.query.filter_by(ticker='SCHD').first()
-            self.assertIsNotNone(stock)
-            self.assertEqual(stock.shares, 10)
+        self.login_test_user()
+        response = self.client.post('/add_stock', data=dict(ticker='SCHD', shares=10), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        stock = Stock.query.filter_by(ticker='SCHD').first()
+        self.assertIsNotNone(stock)
+        self.assertEqual(stock.shares, 10)
 
     def test_delete_stock(self):
-        new_stock = Stock(ticker='SCHD', shares=10)
+        self.login_test_user()
+
+        new_stock = Stock(ticker='SCHD', shares=10, user_id=1)  # Assuming user_id=1 for test user
         db.session.add(new_stock)
         db.session.commit()
 
         response = self.client.get('/delete_stock/SCHD', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
+
         stock = Stock.query.filter_by(ticker='SCHD').first()
         self.assertIsNone(stock)
-
+        
     def test_edit_stock(self):
-        new_stock = Stock(ticker='SCHD', shares=10)
+        self.login_test_user()
+
+        new_stock = Stock(ticker='SCHD', shares=10, user_id=1)  # Assuming user_id=1 for test user
         db.session.add(new_stock)
         db.session.commit()
 
         response = self.client.post('/edit_stock', data=dict(old_ticker='SCHD', new_ticker='SCHD', new_shares=20), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
+
         stock = Stock.query.filter_by(ticker='SCHD').first()
         self.assertIsNotNone(stock)
         self.assertEqual(stock.shares, 20)
 
+
     def test_get_tickers(self):
-        stock1 = Stock(ticker='SCHD', shares=10)
-        stock2 = Stock(ticker='MSFT', shares=15)
+        self.login_test_user()
+
+        stock1 = Stock(ticker='SCHD', shares=10, user_id=1)
+        stock2 = Stock(ticker='MSFT', shares=15, user_id=1)
         db.session.add_all([stock1, stock2])
         db.session.commit()
 
@@ -74,6 +88,7 @@ class TestStockRoutes(BaseTestCase):
         data = response.json
         self.assertIn('SCHD', data['tickers'])
         self.assertIn('MSFT', data['tickers'])
+
 
 class TestDividendCalculator(unittest.TestCase):
     @patch('yfinance.Ticker')
@@ -93,6 +108,41 @@ class TestDividendCalculator(unittest.TestCase):
         calculator = DividendCalculator('AAPL', 10)
         payout = calculator.get_yearly_payout()
         self.assertEqual(payout, 80.0)
+
+
+class TestAuthRoutes(BaseTestCase):
+    def test_signup(self):
+        with self.client:
+            response = self.client.post('/signup', data=dict(username='newuser', password='newpassword'), follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            
+            user = User.query.filter_by(username='newuser').first()
+            self.assertIsNotNone(user)
+            
+    def test_login_success(self):
+        user = User(username='testuser')
+        user.set_password('testpassword')  # Set the password using the method
+        db.session.add(user)
+        db.session.commit()
+
+        with self.client:
+            response = self.client.post('/login', data=dict(username='testuser', password='testpassword'), follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+
+    def test_login_failure(self):
+        response = self.client.post('/login', data=dict(username='wronguser', password='wrongpassword'), follow_redirects=True)
+        self.assertIn('/login', response.request.url)
+    
+    def test_logout(self):
+        self.client.post('/login', data=dict(username='testuser', password='testpassword'), follow_redirects=True)
+        with self.client:
+            response = self.client.get('/logout', follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+
+    def test_access_restricted_routes(self):
+        response = self.client.get('/add_stock', follow_redirects=True)
+        self.assertNotEqual(response.status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()
